@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator nextjs_client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma-nextjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model leads {
+  id                 Int      @id @default(autoincrement())
+  first_name         String?
+  last_name          String?
+  email              String?
+  phone              String?
+  postal_code        String?
+  bcbs_type          String?
+  bcbs               String?
+  dentures           String?
+  current_conditions String?
+  existing_fractured_teeth String?
+  employer_insurance String?
+  employer_bcbs_cash String?
+  how_soon           String?
+  not_ppo_cash_pay   String?
+  pain_discomfort    String?
+  condition_description String?
+  employer           String?
+  credit_score       String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  transcript         String?  // Chat transcript
+  numberOfMissingTeeth Int?
+  isDecayedOrRotTeethPresent Boolean?
+  isUserApplicableForBcbsPpoInsurance Boolean?
+  isUserUploadingCards Boolean?
+  isManualConsultationRequired Boolean?
+  isInsuranceCardValid Boolean?
+  userInsuranceCard  String? 
+  isUserInterestedInCashOptions Boolean?
+  okayWithPrice Boolean?
+  preferredTime String?
+  preferredDay String?
+  humanInterventionNeeded Boolean?
+  isAiTagOn Boolean? @default(true)
+}
