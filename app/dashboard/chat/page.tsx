@@ -70,6 +70,7 @@ export default function ChatDashboard() {
       try {
         const parsedMessages = parseTranscript(lead.transcript);
         setMessages(parsedMessages);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         // If parsing fails, treat as single message
         setMessages([

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function POST(_request: NextRequest) {
   try {
     // Create response with logout success message
     const response = NextResponse.json(
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error('Logout error:', error);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

@@ -33,8 +33,9 @@ export default function LoginPage() {
       } else {
         setError(data.message || 'Login failed')
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false)
     }
