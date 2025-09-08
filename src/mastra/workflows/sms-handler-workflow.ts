@@ -145,7 +145,7 @@ const processAIResponse = createStep({
       const aiResponse = await analyzeDentalDataTool(lead, lead.transcript);
       
       // Update lead with AI response
-      const updateResponse = await fetch(`${process.env.API_URL}/api/leads/${lead.id}`, {
+      await fetch(`${process.env.API_URL}/api/leads/${lead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

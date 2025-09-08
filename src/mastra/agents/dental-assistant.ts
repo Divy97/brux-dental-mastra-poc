@@ -1,6 +1,32 @@
 import { Agent } from "@mastra/core";
 import { openai } from "@ai-sdk/openai";
 
+// Define proper types for lead data
+interface LeadData {
+  first_name: string;
+  last_name: string;
+  [key: string]: unknown;
+}
+
+// Define the response structure
+interface DentalAnalysisResponse {
+  question: string;
+  jsonField: {
+    numberOfMissingTeeth: number;
+    isDecayedOrRotTeethPresent: boolean;
+    isUserApplicableForBcbsPpoInsurance: boolean;
+    isUserUploadingCards: boolean;
+    isManualConsultationRequired: boolean;
+    isInsuranceCardValid: boolean;
+    isUserInterestedInCashOptions: boolean;
+    okayWithPrice: boolean;
+    humanInterventionNeeded: boolean;
+    userInsuranceCard: string;
+    preferredTime: string;
+    preferredDay: string;
+  };
+}
+
 // Dental assistant agent (replaces n8n OpenAI Assistant nodes)
 export const dentalAssistant = new Agent({
   name: "Brux Dental Assistant",
@@ -34,25 +60,9 @@ Always be empathetic, professional, and focused on patient care.`,
 
 // Tool for structured dental analysis (replaces n8n OpenAI parsing)
 export const analyzeDentalDataTool = async (
-  leadData: any,
+  leadData: LeadData,
   chatHistory: string
-): Promise<{
-  question: string;
-  jsonField: {
-    numberOfMissingTeeth: number;
-    isDecayedOrRotTeethPresent: boolean;
-    isUserApplicableForBcbsPpoInsurance: boolean;
-    isUserUploadingCards: boolean;
-    isManualConsultationRequired: boolean;
-    isInsuranceCardValid: boolean;
-    isUserInterestedInCashOptions: boolean;
-    okayWithPrice: boolean;
-    humanInterventionNeeded: boolean;
-    userInsuranceCard: string;
-    preferredTime: string;
-    preferredDay: string;
-  };
-}> => {
+): Promise<DentalAnalysisResponse> => {
   const prompt = `Lead Details:
 lead.first_name: ${leadData.first_name}
 lead.last_name: ${leadData.last_name}
@@ -89,8 +99,8 @@ Return your response in this exact JSON format:
   try {
     const parsed = JSON.parse(response.text);
     return parsed;
-  } catch (error) {
-    // Fallback if JSON parsing fails
+  } catch {
+    // Fallback if JSON parsing fails - removed unused error parameter
     return {
       question: response.text || "Our team will reach out shortly to you",
       jsonField: {
@@ -109,4 +119,4 @@ Return your response in this exact JSON format:
       },
     };
   }
-}; 
+};

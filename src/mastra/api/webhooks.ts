@@ -1,5 +1,58 @@
 import crypto from "crypto";
 
+// Define types for Typeform webhook payload
+interface TypeformAnswer {
+  type: string;
+  field?: {
+    id: string;
+    title: string;
+  };
+  text?: string;
+  email?: string;
+  phone_number?: string;
+  number?: number;
+  choice?: {
+    label: string;
+  };
+  choices?: {
+    labels: string[];
+  };
+  boolean?: boolean;
+  date?: string;
+  value?: unknown;
+}
+
+interface TypeformFormResponse {
+  answers: TypeformAnswer[];
+  [key: string]: unknown;
+}
+
+interface TypeformPayload {
+  form_response: TypeformFormResponse;
+  event_id: string;
+  [key: string]: unknown;
+}
+
+interface ExtractedFormData {
+  [key: string]: string | number | boolean;
+}
+
+interface WorkflowResult {
+  status: string;
+  result?: {
+    success?: boolean;
+    messageSid?: string;
+    leadId?: string;
+    error?: string;
+  };
+  error?: string | Error;
+}
+
+interface AdminMessageRequest {
+  msg: string;
+  leadId: string;
+}
+
 // Verify Typeform webhook signature for security
 function verifyTypeformSignature(signature: string | null, payload: string): boolean {
   if (!signature || !process.env.TYPEFORM_WEBHOOK_SECRET) {
@@ -17,60 +70,62 @@ function verifyTypeformSignature(signature: string | null, payload: string): boo
 }
 
 // Extract form responses from Typeform webhook payload
-function extractTypeformData(payload: any): any {
+function extractTypeformData(payload: TypeformPayload): ExtractedFormData {
   const formResponse = payload.form_response;
   if (!formResponse || !formResponse.answers) {
     throw new Error("Invalid Typeform payload structure");
   }
 
   // Convert Typeform answers array to key-value pairs
-  const extractedData: any = {};
+  const extractedData: ExtractedFormData = {};
   
-  formResponse.answers.forEach((answer: any) => {
+  formResponse.answers.forEach((answer: TypeformAnswer) => {
     const fieldTitle = answer.field?.title || `field_${answer.field?.id}`;
     const fieldId = answer.field?.id;
     
     // Extract the actual answer value based on type
-    let value: any;
+    let value: string | number | boolean;
     switch (answer.type) {
       case "text":
-        value = answer.text;
+        value = answer.text || "";
         break;
       case "email":
-        value = answer.email;
+        value = answer.email || "";
         break;
       case "phone_number":
-        value = answer.phone_number;
+        value = answer.phone_number || "";
         break;
       case "number":
-        value = answer.number;
+        value = answer.number || 0;
         break;
       case "choice":
-        value = answer.choice?.label;
+        value = answer.choice?.label || "";
         break;
       case "choices":
-        value = answer.choices?.labels?.join(", ");
+        value = answer.choices?.labels?.join(", ") || "";
         break;
       case "boolean":
         value = answer.boolean ? "Yes" : "No";
         break;
       case "date":
-        value = answer.date;
+        value = answer.date || "";
         break;
       default:
-        value = answer.text || answer.value || "N/A";
+        value = answer.text || String(answer.value) || "N/A";
     }
     
     // Store both by title and by field ID for flexibility
     extractedData[fieldTitle] = value;
-    extractedData[`field_${fieldId}`] = value;
+    if (fieldId) {
+      extractedData[`field_${fieldId}`] = value;
+    }
   });
 
   return extractedData;
 }
 
 // Execute dental bot workflow using proper Mastra pattern
-async function executeDentalBotWorkflow(typeformData: any) {
+async function executeDentalBotWorkflow(typeformData: ExtractedFormData): Promise<WorkflowResult> {
   try {
     // Import the mastra instance to get the registered workflow
     const { mastra } = await import("../index");
@@ -108,7 +163,7 @@ export async function handleTypeformSubmission(req: Request) {
       });
     }
     
-    const payload = JSON.parse(rawPayload);
+    const payload: TypeformPayload = JSON.parse(rawPayload);
     console.log("Received Typeform submission:", payload.event_id);
     
     // Extract form data from Typeform payload
@@ -121,7 +176,7 @@ export async function handleTypeformSubmission(req: Request) {
     console.log("Workflow execution completed:", result);
     
     // Extract the actual workflow output from the run result according to Mastra standards
-    let workflowOutput: any = {};
+    let workflowOutput: { success?: boolean; messageSid?: string; error?: string } = {};
     let success = false;
     
     if (result.status === "success" && result.result) {
@@ -135,7 +190,7 @@ export async function handleTypeformSubmission(req: Request) {
       success,
       messageSid: workflowOutput.messageSid,
       status: result.status,
-      error: result.status === "failed" ? (result as any).error : workflowOutput.error
+      error: result.status === "failed" ? result.error : workflowOutput.error
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -178,14 +233,16 @@ export async function handleIncomingSMS(req: Request) {
     });
     
     let success = false;
+    let leadId = null;
     if (result.status === "success" && result.result) {
       success = result.result.success || false;
+      leadId = result.result.leadId;
     }
     
     return new Response(JSON.stringify({ 
       success, 
       status: result.status,
-      leadId: result.result?.leadId 
+      leadId: leadId
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -202,7 +259,7 @@ export async function handleIncomingSMS(req: Request) {
 // Admin dashboard webhook handler (replaces n8n webhook "16fb8b9f-cbf4-4013-b4c5-b4cef91d660a")
 export async function handleAdminMessage(req: Request) {
   try {
-    const { msg, leadId } = await req.json();
+    const { msg, leadId }: AdminMessageRequest = await req.json();
     
     console.log("Received admin message:", { msg, leadId });
     
@@ -222,6 +279,7 @@ export async function handleAdminMessage(req: Request) {
     });
     
     let success = false;
+
     if (result.status === "success" && result.result) {
       success = result.result.success || false;
     }
@@ -229,7 +287,7 @@ export async function handleAdminMessage(req: Request) {
     return new Response(JSON.stringify({ 
       success, 
       status: result.status,
-      leadId: result.result?.leadId 
+      leadId
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -241,4 +299,4 @@ export async function handleAdminMessage(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-} 
+}
