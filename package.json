@@ -7,17 +7,17 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "mastra-dev": "mastra dev"
+    "mastra-dev": "mastra dev",
+    "mastra-build": "mastra build"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.24",
     "next": "15.5.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"
-  },
+  },   
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
